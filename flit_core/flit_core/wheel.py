@@ -224,13 +224,32 @@ class WheelBuilder:
         finally:
             self.wheel_zip.close()
 
+
+class EditableWheelBuilder(WheelBuilder):
+    def copy_module(self):
+        from editables import EditableProject
+
+        editable_project = EditableProject(self.metadata.name, self.module.directory)
+        editable_project.map(self.module.name, self.module.name)
+
+        with tempfile.TemporaryDirectory(prefix='flit-editable') as temp_dir:
+            for name, content in editable_project.files():
+                target = osp.join(temp_dir, name)
+                with open(target, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                self._add_file(target, name)
+
+        self.metadata.requires_dist.extend(editable_project.dependencies())
+
+
 def make_wheel_in(ini_path, wheel_directory):
     # We don't know the final filename until metadata is loaded, so write to
     # a temporary_file, and rename it afterwards.
     (fd, temp_path) = tempfile.mkstemp(suffix='.whl', dir=str(wheel_directory))
+    builder = EditableWheelBuilder if os.environ.get('FLIT_EDITABLE') == '1' else WheelBuilder
     try:
         with io.open(fd, 'w+b') as fp:
-            wb = WheelBuilder.from_ini_path(ini_path, fp)
+            wb = builder.from_ini_path(ini_path, fp)
             wb.build()
 
         wheel_path = wheel_directory / wb.wheel_filename

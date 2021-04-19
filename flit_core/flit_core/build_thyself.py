@@ -26,6 +26,7 @@ metadata_dict = {
                     'See flit package for more information'),
     'requires_dist': [
         'toml',
+        'editables',
     ],
     'requires_python': '>=3.4',
     'classifiers': [
@@ -92,4 +93,3 @@ def build_sdist(sdist_directory, config_settings=None):
     )
     path = sb.build(Path(sdist_directory))
     return path.name
-
