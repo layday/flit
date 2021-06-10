@@ -4,6 +4,7 @@ from datetime import datetime
 import hashlib
 from glob import glob
 import io
+import json
 import logging
 import os
 import os.path as osp
@@ -224,13 +225,29 @@ class WheelBuilder:
         finally:
             self.wheel_zip.close()
 
-def make_wheel_in(ini_path, wheel_directory):
+
+class EditableWheelBuilder(WheelBuilder):
+    def copy_module(self):
+        log.info('Generating editable.json for %s', self.module.path)
+        source_dir = str(self.module.source_dir)
+
+        with self._write_to_zip(self.dist_info + '/editable.json') as f:
+            editable_json = {
+                'paths': {
+                    osp.relpath(f, source_dir).replace(os.sep, '/'): osp.abspath(f)
+                    for f in self.module.iter_files()
+                }
+            }
+            f.write(json.dumps(editable_json))
+
+
+def make_wheel_in(ini_path, wheel_directory, builder=WheelBuilder):
     # We don't know the final filename until metadata is loaded, so write to
     # a temporary_file, and rename it afterwards.
     (fd, temp_path) = tempfile.mkstemp(suffix='.whl', dir=str(wheel_directory))
     try:
         with io.open(fd, 'w+b') as fp:
-            wb = WheelBuilder.from_ini_path(ini_path, fp)
+            wb = builder.from_ini_path(ini_path, fp)
             wb.build()
 
         wheel_path = wheel_directory / wb.wheel_filename

@@ -10,7 +10,7 @@ from .common import (
     get_docstring_and_version_via_ast,
 )
 from .config import read_flit_config
-from .wheel import make_wheel_in, _write_wheel_file
+from .wheel import EditableWheelBuilder, make_wheel_in, _write_wheel_file
 from .sdist import SdistBuilder
 
 log = logging.getLogger(__name__)
@@ -64,6 +64,10 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     """Builds a wheel, places it in wheel_directory"""
     info = make_wheel_in(pyproj_toml, Path(wheel_directory))
+    return info.file.name
+
+def build_wheel_for_editable(wheel_directory, config_settings=None):
+    info = make_wheel_in(pyproj_toml, Path(wheel_directory), EditableWheelBuilder)
     return info.file.name
 
 def build_sdist(sdist_directory, config_settings=None):
